@@ -47,38 +47,44 @@ app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
 
-// function for waiting
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+};
 
 const makeTruphoneApiCalls = async function(csv) {
+
     // parse and organise data
     const organisedData = utils.organiseRequestDataIntoJson(utils.csvStringToArray(csv))
 
     // get a list of every single tag in use across Truphone
-    const allTagsInUse = await api.getAllTagsInUse()
+    const allTagsInUse = JSON.parse(await api.getAllTagsInUse()).map(item => item.label);
+
+    // keep track of requests
+    let promises = [];
 
     // unassign all tags
-    await (async () => {
-        const promises = [];
-        // get list of unique iccids
-        const uniqueIccids = [...new Set(Object.values(organisedData["Tags"]).flat())];
-            allTagsInUse.forEach((tag) => {
-                promises.push(api.makeApiCallToUnassignTags(tag, uniqueIccids))
-            })
-        await Promise.all(promises)
-    })();
+    const uniqueIccids = [...new Set(Object.values(organisedData["Tags"]).flat())];
+    allTagsInUse.forEach((tag) => {
+        promises.push(api.makeApiCallToUnassignTags(tag, uniqueIccids))
+    })
+    console.log("Result of unassign tag operations: ", await Promise.all(promises))
+    promises = []
     
     // add back the ones we want
     for (const [tag, iccids] of Object.entries(organisedData["Tags"])){
-        api.makeApiCallToSetTags(tag, iccids)
+        promises.push(api.makeApiCallToSetTags(tag, iccids))
     }
+    console.log("Result of assign tag operations: ", await Promise.all(promises))
+    promises = []
 
     // set labels because this is done differently to attributes for some reason
-    for (const [label, iccids]of Object.entries(organisedData["Label"])){
+    for (const [label, iccids] of Object.entries(organisedData["Label"])){
         iccids.forEach(iccid => {
-            api.makeApiCallToSetLabel(label, iccid)
+            promises.push(api.makeApiCallToSetLabel(label, iccid))
         });
     }
+    console.log("Result of assign label operations: ", await Promise.all(promises))
+    promises = []
 
     // set attributes
     for (const [attribute, values] of Object.entries(organisedData)){
@@ -86,8 +92,10 @@ const makeTruphoneApiCalls = async function(csv) {
             continue
         }
         for (const [value, iccids] of Object.entries(values)){
-            api.makeApiCallToSetAttributes(attribute, value, iccids)        
+            promises.push(api.makeApiCallToSetAttributes(attribute, value, iccids))
         } 
     }
+    console.log("Result of assign attribute operations: ", await Promise.all(promises))
+    promises = []
 }
 

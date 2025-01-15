@@ -27,8 +27,8 @@ exports.organiseRequestDataIntoJson = function(parsedCsv) {
         organisedRequestData[parsedCsv[0][i]] = {}
     }
 
-    // loop over each element of each array in the outer array. 
-    for (let i=1; i < parsedCsv.length-1; i++){
+    // LOOP OVER ROWS IN THE CSV
+    for (let i=1; i < parsedCsv.length; i++){
         // error checking
         if (parsedCsv[i].length > parsedCsv[0].length) {
             continue
@@ -43,7 +43,7 @@ exports.organiseRequestDataIntoJson = function(parsedCsv) {
             }
         }
 
-        // then we add the iccid to the pertinent value fields
+        // LOOP OVER VALUES IN THE ROW
         for (let j=0; j < parsedCsv[i].length; j++) {
             // ignore iccid
             if (parsedCsv[0][j] == "ICCID") {
